@@ -170,6 +170,14 @@ body.is-draft #appPage::before{content:"DRAFT — NOT APPROVED";position:fixed;t
   #piaSignUploadBtn,#piaSignClearBtn,#piaSignPreviewWrap,label[for="sigPiaSignFile"]{display:none!important;}
   *{overflow:visible!important;box-shadow:none!important;}
   table,tbody,.sig-section{page-break-inside:avoid!important;}
+  /* ── L2 approver print: force l2View and l2Det visible ── */
+  body.printing-l2 #l2View{display:block!important;}
+  body.printing-l2 #l2Det{display:block!important;}
+  body.printing-l2 #l2List{display:none!important;}
+  body.printing-l2 #l1View{display:none!important;}
+  /* ── L1 field print: force l1View visible ── */
+  body.printing-l1 #l1View{display:block!important;}
+  body.printing-l1 #l2View{display:none!important;}
 }
 </style>
 </head>
@@ -1101,7 +1109,7 @@ function openL2Det(key,lbl,blName,mode,blLgd){
     var ccn=inp[item.sr+"|ccn"]||"";
     var bq2=isB?item.qty:getGpBoqQty(revGpLgd,item.sr);
     var cv2=inp[item.sr+"|cqty"]||"";
-    var need=(cv2!==""&&bq2!=null&&parseFloat(cv2)>parseFloat(bq2));
+    var need=(cv2!==""&&bq2!=null&&!isNaN(parseFloat(cv2))&&!isNaN(parseFloat(bq2))&&parseFloat(cv2)>parseFloat(bq2));
     if(need||ccn){
       var tbl=G("l2TBody").querySelector("tbody");
       if(tbl){var tr=document.createElement("tr");tr.className="ccn-row";
@@ -1186,6 +1194,14 @@ window.addEventListener("keydown",function(e){if((e.ctrlKey||e.metaKey)&&e.key==
 
 window.addEventListener("beforeprint",function(){
   if(getCurStatus()!=="approved"){alert("Print is locked until Level 2 approves.");return;}
+  /* Add class to body to control which view prints */
+  if(SESSION&&SESSION.role===2&&l2Key){
+    document.body.classList.add("printing-l2");
+    document.body.classList.remove("printing-l1");
+  }else{
+    document.body.classList.add("printing-l1");
+    document.body.classList.remove("printing-l2");
+  }
   var pBlock="",pSubject="";
   if(SESSION&&SESSION.role===2&&_l2ctx.blLgd){
     var bl2=(typeof BLOCKS_DATA!=="undefined")?BLOCKS_DATA[_l2ctx.blLgd]:null;
@@ -1222,6 +1238,9 @@ window.addEventListener("beforeprint",function(){
    INIT
 ═══════════════════════════════════════ */
 document.querySelectorAll(".ov").forEach(function(o){o.addEventListener("click",function(e){if(e.target===o)closeDlg();});});
+window.addEventListener("afterprint",function(){
+  document.body.classList.remove("printing-l1","printing-l2");
+});
 G("uid").addEventListener("keydown",function(e){if(e.key==="Enter")doLogin();});
 G("upw").addEventListener("keydown",function(e){if(e.key==="Enter")doLogin();});
 (function(){var d=G("printHeaderDate");if(d)d.textContent=new Date().toLocaleString("en-IN",{dateStyle:"medium",timeStyle:"short"});})();
